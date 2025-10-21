@@ -38,6 +38,7 @@ def convert_h5_to_xdmf(h5_file, xdmf_directory, meta_path):
                 points=traj["mesh_pos"][t],
                 cells={"triangle": traj["cells"][t]},
                 point_data={"velocity": traj["velocity"][t],
+                            "pressure": traj["pressure"][t],
                             "node_type": traj["node_type"][t]},
 
             )
@@ -53,10 +54,13 @@ def convert_h5_to_xdmf(h5_file, xdmf_directory, meta_path):
     print("done")
 
 
-data_path = "/home/admin-vlannelongue/Data/Cylinder/"
-h5_file = os.path.join(data_path, "train_set.h5")
+data_path = "/home/admin-vlannelongue/Data/Cylinder/DeepmindData"
+h5_file = os.path.join(data_path, "train.h5")
+outdir = os.path.join(data_path, "train_set")
+os.makedirs(outdir)
+
 convert_h5_to_xdmf(
     h5_file,
-    os.path.join(data_path, "train_set"),
-    os.path.join(data_path, "cylinder_meta.json"),
+    outdir,
+    "cylinder_meta.json",
 )
