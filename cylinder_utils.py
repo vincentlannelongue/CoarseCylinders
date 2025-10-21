@@ -16,14 +16,9 @@ class NodeType(enum.IntEnum):
 
 
 def generate_cylinder_flow_mesh(
-    xmin,
-    xmax,
-    ymin,
-    ymax,
+    params: dict,
     center,
     radius,
-    min_size,
-    max_size,
     out_path: str,
     gui: bool = False,
 ):
@@ -34,14 +29,14 @@ def generate_cylinder_flow_mesh(
     gmsh.model.add("cylinder_flow")
 
     p1 = gmsh.model.occ.addPoint(
-        xmin,
-        ymin,
+        params["domain"]["xmin"],
+        params["domain"]["ymin"],
         0,
     )
-    p2 = gmsh.model.occ.addPoint(xmax, ymin, 0)
-    p3 = gmsh.model.occ.addPoint(xmax, ymax, 0)
-    p4 = gmsh.model.occ.addPoint(xmin, ymax, 0)
-
+    p2 = gmsh.model.occ.addPoint(params["domain"]["xmax"], params["domain"]["ymin"], 0)
+    p3 = gmsh.model.occ.addPoint(params["domain"]["xmax"], params["domain"]["ymax"], 0)
+    p4 = gmsh.model.occ.addPoint(params["domain"]["xmin"], params["domain"]["ymax"], 0)
+    
     l1 = gmsh.model.occ.addLine(p1, p2)
     l2 = gmsh.model.occ.addLine(p2, p3)
     l3 = gmsh.model.occ.addLine(p3, p4)
@@ -68,32 +63,32 @@ def generate_cylinder_flow_mesh(
     thresh_cylinder = gmsh.model.mesh.field.add("Threshold", 4)
     gmsh.model.mesh.field.setNumber(thresh_cylinder, "InField", dist_cylinder)
     gmsh.model.mesh.field.setNumber(
-        thresh_cylinder, "SizeMin", min_size
+        thresh_cylinder, "SizeMin", params["cylinder"]["SizeMin"]
     )  # smallest elements near hole
     gmsh.model.mesh.field.setNumber(
-        thresh_cylinder, "SizeMax", max_size
+        thresh_cylinder, "SizeMax", params["cylinder"]["SizeMax"]
     )  # coarsest elements in far field
-    gmsh.model.mesh.field.setNumber(thresh_cylinder, "DistMin", 0.0051)
-    gmsh.model.mesh.field.setNumber(thresh_cylinder, "DistMax", 0.15)
-
+    gmsh.model.mesh.field.setNumber(thresh_cylinder, "DistMin", params["cylinder"]["DistMin"])
+    gmsh.model.mesh.field.setNumber(thresh_cylinder, "DistMax", params["cylinder"]["DistMax"])
 
     # Distance from walls
     dist_walls = gmsh.model.mesh.field.add("Distance")
     gmsh.model.mesh.field.setNumbers(dist_walls, "PointsList", [p1, p2, p3, p4])
-    gmsh.model.mesh.field.setNumbers(dist_walls, "CurvesList", [l1, l3])
+    if not params["only_corners"]:
+        gmsh.model.mesh.field.setNumbers(dist_walls, "CurvesList", [l1, l3])
     gmsh.model.mesh.field.setNumber(dist_walls, "Sampling", 100)
 
     # Smooth transition: fine near hole, coarse far away
     thresh_walls = gmsh.model.mesh.field.add("Threshold")
     gmsh.model.mesh.field.setNumber(thresh_walls, "InField", dist_walls)
     gmsh.model.mesh.field.setNumber(
-        thresh_walls, "SizeMin", min_size * 2
+        thresh_walls, "SizeMin", params["walls"]["SizeMin"]
     )  # smallest elements near hole
     gmsh.model.mesh.field.setNumber(
-        thresh_walls, "SizeMax", max_size
+        thresh_walls, "SizeMax", params["walls"]["SizeMax"]
     )  # coarsest elements in far field
-    gmsh.model.mesh.field.setNumber(thresh_walls, "DistMin", 0.01)
-    gmsh.model.mesh.field.setNumber(thresh_walls, "DistMax", 0.15)
+    gmsh.model.mesh.field.setNumber(thresh_walls, "DistMin", params["walls"]["DistMin"])
+    gmsh.model.mesh.field.setNumber(thresh_walls, "DistMax", params["walls"]["DistMax"])
 
     # Take the minimum of the two fields
     min_field = gmsh.model.mesh.field.add("Min")
@@ -110,15 +105,15 @@ def generate_cylinder_flow_mesh(
     gmsh.model.mesh.field.setNumber(
         tag=boundary_layer_rectangle,
         option="Size",
-        value=0.0047,
+        value=params["walls"]["Size"],
     )
     gmsh.model.mesh.field.setNumber(
-        tag=boundary_layer_rectangle, option="Ratio", value=1
+        tag=boundary_layer_rectangle, option="Ratio", value=params["walls"]["Ratio"]
     )
     gmsh.model.mesh.field.setNumber(
         tag=boundary_layer_rectangle,
         option="Thickness",
-        value=0.0098,
+        value=params["walls"]["Thickness"],
     )
 
     # Boundary layer parameters for cylinder
@@ -131,20 +126,19 @@ def generate_cylinder_flow_mesh(
     gmsh.model.mesh.field.setNumber(
         tag=boundary_layer_cylinder,
         option="Size",
-        value=0.0025,
+        value=params["cylinder"]["Size"],
     )
     gmsh.model.mesh.field.setNumber(
-        tag=boundary_layer_cylinder, option="Ratio", value=1
+        tag=boundary_layer_cylinder, option="Ratio", value=params["cylinder"]["Ratio"]
     )
     gmsh.model.mesh.field.setNumber(
         tag=boundary_layer_cylinder,
         option="Thickness",
-        value=0.0051,
+        value=params["cylinder"]["Thickness"],
     )
 
     gmsh.model.mesh.field.setAsBoundaryLayer(tag=boundary_layer_rectangle)
     gmsh.model.mesh.field.setAsBoundaryLayer(tag=boundary_layer_cylinder)
-
 
     gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
 

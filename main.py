@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import numpy as np
@@ -12,21 +13,23 @@ from mesh_utils import (
 
 from cylinder_utils import generate_cylinder_flow_mesh, create_node_type
 
+PARAMETERS_PATH = "mesh_params/coarse_2.json"
 
-MAX_SIZE = 0.04
-MIN_SIZE = 0.0075
 
-FIELDS = ["velocity"]
-INTERPOLATION_METHODS = ["linear"]
+FIELDS = ["velocity", "pressure"]
+INTERPOLATION_METHODS = ["linear", "linear"]
 
 
 def main():
 
-    root_dir = "/home/admin-vlannelongue/dev/coarse_cylinders"
+    with open(PARAMETERS_PATH, "r") as fp:
+        params = json.load(fp)
+
+    root_dir = "/home/admin-vlannelongue/dev/CoarseCylinders"
     xdmf_dir = (
-        "/home/admin-vlannelongue/Data/Cylinder/train_set"
+        "/home/admin-vlannelongue/Data/Cylinder/validation_set"
     )
-    out_dir = os.path.join(root_dir, "cylinder_train_original_size_linear")
+    out_dir = os.path.join(root_dir, "cylinder_val_coarse_2")
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(root_dir, exist_ok=True)
 
@@ -41,7 +44,7 @@ def main():
         if os.path.splitext(xdmf)[1] == ".xdmf":
             done_files.append(os.path.split(os.path.splitext(xdmf)[0])[-1])
 
-    for k, xdmf in enumerate(xdmf_files):
+    for k, xdmf in enumerate(xdmf_files[:2]):
         xdmf_filename = os.path.split(os.path.splitext(xdmf)[0])[-1]
 
         print(f"\n----------- XDMF file {k}/{len(xdmf_files)} - {xdmf_filename}")
@@ -61,7 +64,7 @@ def main():
 
         # 1 - Extract the vtus from the xdmf archive
 
-        volume_meshes = xdmf_to_meshes(xdmf)  # [:10]
+        volume_meshes = xdmf_to_meshes(xdmf)[:10]
         # TODO: refactor, not good to open all meshes at once, maybe write a generator
         boundaries = get_surface_mesh_boundaries(
             mesh=volume_meshes[0],
@@ -75,24 +78,19 @@ def main():
         radius = np.mean([np.linalg.norm(center - n) for n in cylinder_boundary])
 
         generate_cylinder_flow_mesh(
-            xmin=0.0,
-            xmax=1.6,
-            ymin=0.0,
-            ymax=0.41,
+            params,
             center=center,
             radius=radius,
-            min_size=MIN_SIZE,
-            max_size=MAX_SIZE,
             out_path=coarse_mesh_path,
             gui=False,
         )
 
         node_type = create_node_type(
             mesh_file=coarse_mesh_path,
-            xmin=0.0,
-            xmax=1.6,
-            ymin=0.0,
-            ymax=0.41,
+            xmin=params["domain"]["xmin"],
+            xmax=params["domain"]["xmax"],
+            ymin=params["domain"]["ymin"],
+            ymax=params["domain"]["ymax"],
             center=center,
             radius=radius,
             out_path=os.path.join(tmp_dir, "node_type.vtk"),

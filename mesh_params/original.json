@@ -1,0 +1,29 @@
+{
+    "domain": {
+        "xmin": 0.0,
+        "xmax": 1.6,
+        "ymin": 0.0,
+        "ymax": 0.41
+    },
+
+    "only_corners": false,
+    "walls": {
+        "SizeMax": 0.04,
+        "SizeMin": 0.015,
+        "DistMin": 0.01,
+        "DistMax": 0.15,
+        "Size": 0.0047,
+        "Ratio": 1.0,
+        "Thickness": 0.0098
+    },
+    "cylinder": 
+    {
+        "SizeMax": 0.04,
+        "SizeMin": 0.0075,
+        "DistMin": 0.01,
+        "DistMax": 0.12,
+        "Size": 0.0047,
+        "Ratio": 1.0,
+        "Thickness": 0.0098
+    }
+}
